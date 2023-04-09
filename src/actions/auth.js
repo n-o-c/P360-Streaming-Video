@@ -1,55 +1,94 @@
-import {
-  USER_LOADED,
-  AUTH_ERROR,
-  LOGIN_SUCCESS,
-  LOGIN_FAIL,
-  LOGOUT_SUCCESS,
-  REGISTER_SUCCESS,
-  REGISTER_FAIL
-} from './types';
+import { CognitoUserPool } from 'amazon-cognito-identity-js';
 
-import { Auth } from 'aws-amplify';
-
-// Load User
-export const loadUser = () => async dispatch => {
-  try {
-    const user = await Auth.currentAuthenticatedUser();
-    dispatch({ type: USER_LOADED, payload: user });
-  } catch (err) {
-    dispatch({ type: AUTH_ERROR });
-  }
+const poolData = {
+  UserPoolId: process.env.REACT_APP_USER_POOL_ID,
+  ClientId: process.env.REACT_APP_CLIENT_ID,
 };
 
-// Register User
-export const register = ({ email, password }) => async dispatch => {
-  try {
-    const { user } = await Auth.signUp({
-      username: email,
-      password
+const userPool = new CognitoUserPool(poolData);
+
+export const registerUser = (email, password) => dispatch => {
+  const attributeList = [];
+
+  const dataEmail = {
+    Name: 'email',
+    Value: email,
+  };
+
+  const attributeEmail = new AmazonCognitoIdentity.CognitoUserAttribute(dataEmail);
+
+  attributeList.push(attributeEmail);
+
+  userPool.signUp(email, password, attributeList, null, (err, result) => {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    dispatch({
+      type: 'REGISTER_SUCCESS',
+      payload: result.user,
     });
-
-    dispatch({ type: REGISTER_SUCCESS, payload: user });
-  } catch (err) {
-    dispatch({ type: REGISTER_FAIL });
-  }
+  });
 };
 
-// Login User
-export const login = ({ email, password }) => async dispatch => {
-  try {
-    const user = await Auth.signIn(email, password);
-    dispatch({ type: LOGIN_SUCCESS, payload: user });
-  } catch (err) {
-    dispatch({ type: LOGIN_FAIL });
-  }
+export const confirmUser = (email, code) => dispatch => {
+  const userData = {
+    Username: email,
+    Pool: userPool,
+  };
+
+  const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+  cognitoUser.confirmRegistration(code, true, (err, result) => {
+    if (err) {
+      console.log(err);
+      return;
+    }
+    dispatch({
+      type: 'CONFIRM_SUCCESS',
+      payload: result,
+    });
+  });
 };
 
-// Logout User
-export const logout = () => async dispatch => {
-  try {
-    await Auth.signOut();
-    dispatch({ type: LOGOUT_SUCCESS });
-  } catch (err) {
-    dispatch({ type: AUTH_ERROR });
-  }
+export const loginUser = (email, password) => dispatch => {
+  const userData = {
+    Username: email,
+    Pool: userPool,
+  };
+
+  const authenticationData = {
+    Username: email,
+    Password: password,
+  };
+
+  const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(
+    authenticationData
+  );
+
+  const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+  cognitoUser.authenticateUser(authenticationDetails, {
+    onSuccess: result => {
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: result,
+      });
+    },
+
+    onFailure: err => {
+      console.log(err);
+    },
+  });
 };
+
+export const logoutUser = () => dispatch => {
+  const cognitoUser = userPool.getCurrentUser();
+  if (cognitoUser != null) {
+    cognitoUser.signOut();
+  }
+  dispatch({
+    type: 'LOGOUT_SUCCESS',
+  });
+};
+
