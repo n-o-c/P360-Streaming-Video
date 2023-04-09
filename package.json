@@ -1,0 +1,15 @@
+{
+  "name": "P360-Streaming-Video",
+  "version": "1.0.0",
+  "description": "P360 Video Streaming Rewards Platform with Polygon Integration",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/n-o-c/P360-Streaming-Video.git"
+  },
+  "author": "Zeshan Ahmad",
+  "license": "MIT"
+}
